@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EcoPink: Student Portal</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Mali', 'cursive'], 
+            heading: ['Fredoka', 'sans-serif'],
+          },
+          colors: {
+            eco: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              300: '#86efac',
+              400: '#4ade80',
+              500: '#22c55e',
+              600: '#16a34a',
+              900: '#14532d',
+            },
+            sky: {
+              100: '#e0f2fe',
+              300: '#7dd3fc',
+              500: '#0ea5e9',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Mali', cursive;
+      background: linear-gradient(180deg, #e0f2fe 0%, #f0fdf4 100%);
+      min-height: 100vh;
+      color: #14532d;
+      overflow-x: hidden;
+    }
+    
+    h1, h2, h3, .heading-font { font-family: 'Fredoka', sans-serif; }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255, 255, 255, 1);
+      box-shadow: 0 8px 32px rgba(22, 163, 74, 0.1);
+      border-radius: 24px;
+    }
+
+    .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Game Canvas Styles */
+    #gameContainer {
+      width: 100%;
+      height: 60vh;
+      position: relative;
+      background: #7dd3fc;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+      border: 4px solid #fff;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+      touch-action: none; /* ป้องกันการไถหน้าจอตอนลากของ */
+    }
+
+    /* Floating Shop Menu */
+    .shop-item {
+      transition: all 0.2s;
+    }
+    .shop-item:hover, .shop-item.selected {
+      transform: scale(1.1);
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+    .shop-item.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      filter: grayscale(100%);
+    }
+
+    /* Bottom Nav */
+    .nav-btn {
+      transition: all 0.3s;
+      color: #9ca3af;
+    }
+    .nav-btn.active {
+      color: #16a34a;
+      transform: translateY(-5px);
+    }
+    .nav-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 6px;
+      background-color: #16a34a;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-eco-300 selection:text-eco-900 pb-24">
+
+  <!-- ================= L O G I N ================= -->
+  <div id="loginView" class="min-h-screen flex items-center justify-center p-4 fade-in">
+    <div class="glass-card w-full max-w-sm p-8 text-center relative overflow-hidden">
+      <div class="absolute top-4 left-4 text-white opacity-60 text-4xl"><i class="fa-solid fa-cloud"></i></div>
+      <div class="absolute top-10 right-4 text-white opacity-60 text-3xl"><i class="fa-solid fa-cloud"></i></div>
+
+      <div class="w-24 h-24 bg-gradient-to-br from-eco-300 to-eco-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-lg z-10 relative">
+        <i class="fa-solid fa-seedling text-5xl text-white"></i>
+      </div>
+      <h1 class="heading-font text-3xl font-bold text-eco-600 mb-1">Eco Valley</h1>
+      <p class="text-sm text-eco-900/60 mb-6 font-medium">เข้าสู่ระบบด้วยรหัสนักเรียน</p>
+
+      <form id="loginForm" class="space-y-4" onsubmit="event.preventDefault(); doStudentLogin();">
+        <input type="text" id="studentId" required class="w-full px-4 py-3 rounded-xl border-2 border-eco-100 focus:border-eco-400 outline-none text-center font-bold text-lg text-eco-900 bg-white/80" placeholder="รหัสนักเรียน">
+        <input type="password" id="studentPass" required class="w-full px-4 py-3 rounded-xl border-2 border-eco-100 focus:border-eco-400 outline-none text-center font-bold text-lg text-eco-900 bg-white/80" placeholder="รหัสผ่าน (รหัสนักเรียน)">
+        <button type="submit" id="loginBtn" class="w-full py-3 bg-eco-500 text-white heading-font font-bold text-xl rounded-xl hover:bg-eco-600 transition shadow-md mt-2">
+          เข้าสู่โลกสีเขียว <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= M A I N   A P P ================= -->
+  <div id="mainAppView" class="hidden min-h-screen flex flex-col max-w-md mx-auto relative shadow-2xl bg-white/40">
+    
+    <!-- Top Header -->
+    <header class="bg-white/80 backdrop-blur-md p-4 sticky top-0 z-40 rounded-b-3xl shadow-sm flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-eco-100 text-eco-500 flex items-center justify-center text-xl border-2 border-eco-200">
+          <i class="fa-solid fa-child-reaching"></i>
+        </div>
+        <div>
+          <div class="text-xs text-eco-600 font-semibold" id="displayRoom">ห้องเรียน</div>
+          <div class="heading-font font-bold text-gray-800 leading-tight" id="displayName">ชื่อนักเรียน</div>
+        </div>
+      </div>
+      <button onclick="logout()" class="w-10 h-10 rounded-full bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center transition">
+        <i class="fa-solid fa-power-off"></i>
+      </button>
+    </header>
+
+    <!-- Content Area -->
+    <main class="flex-grow p-4 space-y-6">
+      
+      <!-- ===== TAB: DASHBOARD ===== -->
+      <div id="view-dashboard" class="content-view fade-in">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="heading-font text-xl text-eco-900">สรุปความสำเร็จของฉัน <i class="fa-solid fa-medal text-yellow-400"></i></h2>
+          <button onclick="refreshData()" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-eco-500 hover:bg-eco-100 transition" title="ดึงข้อมูลล่าสุด">
+            <i class="fa-solid fa-rotate-right" id="refreshIconDash"></i>
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="glass-card p-4 text-center">
+            <div class="w-10 h-10 mx-auto bg-green-100 text-green-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-weight-hanging"></i></div>
+            <div class="text-xs text-gray-500 font-bold">ช่วยโลกลดขยะ</div>
+            <div class="heading-font text-2xl text-green-600 font-bold"><span id="stat-weight">0</span><span class="text-sm">กก.</span></div>
+          </div>
+          <div class="glass-card p-4 text-center">
+            <div class="w-10 h-10 mx-auto bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-lg mb-2"><i class="fa-solid fa-piggy-bank"></i></div>
+            <div class="text-xs text-gray-500 font-bold">เงินออมสะสม</div>
+            <div class="heading-font text-2xl text-blue-600 font-bold"><span id="stat-money">0</span><span class="text-sm">฿</span></div>
+          </div>
+        </div>
+
+        <div class="bg-gradient-to-r from-amber-400 to-orange-400 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden border-4 border-white">
+          <div class="absolute -right-4 -bottom-4 text-white opacity-20 text-7xl"><i class="fa-solid fa-star"></i></div>
+          <div class="relative z-10">
+            <div class="text-amber-100 font-bold mb-1">แต้มสะสมทั้งหมด (Points)</div>
+            <div class="heading-font text-5xl font-bold" id="stat-points">0</div>
+            <div class="text-sm mt-2 font-medium bg-black/10 inline-block px-3 py-1 rounded-full">
+              ใช้สร้างเกาะไปแล้ว: <span id="stat-spent">0</span> แต้ม
+            </div>
+          </div>
+        </div>
+
+        <button onclick="switchTab('game')" class="w-full mt-6 bg-eco-500 text-white heading-font text-xl py-4 rounded-2xl shadow-lg border-b-4 border-eco-600 active:border-b-0 active:translate-y-1 transition flex items-center justify-center gap-2 animate-bounce">
+          <i class="fa-solid fa-gamepad"></i> เข้าเล่นเกม Eco Valley
+        </button>
+      </div>
+
+      <!-- ===== TAB: HISTORY ===== -->
+      <div id="view-history" class="content-view hidden fade-in">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="heading-font text-xl text-eco-900">ประวัติการฝากขยะ <i class="fa-solid fa-clock-rotate-left text-eco-400"></i></h2>
+          <button onclick="refreshData()" class="text-sm bg-white px-3 py-1 rounded-full shadow-sm text-eco-500 hover:bg-eco-100 transition flex items-center gap-2 font-bold">
+            <i class="fa-solid fa-rotate-right" id="refreshIconHist"></i> ซิงค์ข้อมูล
+          </button>
+        </div>
+        <div class="space-y-3" id="historyList">
+          <div class="text-center text-gray-400 py-8">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: COMMUNITY (เพื่อน) ===== -->
+      <div id="view-community" class="content-view hidden fade-in">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="heading-font text-xl text-eco-900"><i class="fa-solid fa-user-group text-sky-500"></i> สังคมรักษ์โลก</h2>
+          <button onclick="loadClassmates()" class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center text-sky-500 hover:bg-sky-100 transition" title="โหลดรายชื่อใหม่">
+            <i class="fa-solid fa-rotate-right" id="refreshIconCommunity"></i>
+          </button>
+        </div>
+        <div class="glass-card p-4 mb-4 text-sm text-eco-900 font-bold bg-sky-50/50">
+          เยี่ยมชมเกาะของเพื่อนๆ และแบ่งปันแต้มให้กันได้ที่นี่!
+        </div>
+        <div class="space-y-3" id="classmateList">
+          <div class="text-center text-gray-400 py-8">กำลังโหลดรายชื่อเพื่อน...</div>
+        </div>
+      </div>
+
+      <!-- ===== TAB: GAME (ECO VALLEY) ===== -->
+      <div id="view-game" class="content-view hidden fade-in h-full flex flex-col">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="heading-font text-xl text-eco-900"><i class="fa-solid fa-earth-asia text-eco-500"></i> เกาะของฉัน</h2>
+          <div class="bg-amber-100 text-amber-600 px-3 py-1 rounded-full font-bold text-sm border-2 border-amber-200 shadow-sm flex items-center gap-1">
+            <i class="fa-solid fa-star text-amber-400"></i> <span id="game-current-points">0</span>
+          </div>
+        </div>
+
+        <!-- Game Canvas Area -->
+        <div id="gameContainer">
+          
+          <!-- Camera Button -->
+          <div class="absolute top-3 right-3 z-20">
+             <button onclick="takeSnapshot()" class="bg-white/90 text-sky-500 w-11 h-11 rounded-full shadow-lg hover:bg-white flex items-center justify-center transition border-2 border-sky-200 hover:scale-110" title="แชร์ภาพเกาะ">
+                 <i class="fa-solid fa-camera text-xl"></i>
+             </button>
+          </div>
+
+          <!-- Back Home Button (Visit Mode) -->
+          <div id="visitModeHeader" class="absolute top-3 left-3 z-20 hidden">
+             <button onclick="returnHome()" class="bg-rose-500 text-white px-3 py-2 rounded-xl shadow-lg hover:bg-rose-600 flex items-center gap-2 font-bold heading-font transition hover:scale-105 border-2 border-white">
+                 <i class="fa-solid fa-house-user"></i> กลับเกาะตัวเอง
+             </button>
+          </div>
+
+          <canvas id="gameCanvas"></canvas>
+          
+          <!-- Loading Overlay -->
+          <div id="gameLoading" class="absolute inset-0 bg-sky-200/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 transition-opacity">
+            <i class="fa-solid fa-seedling text-4xl text-eco-500 animate-bounce mb-2"></i>
+            <span class="heading-font text-eco-700 font-bold">กำลังสร้างเกาะ...</span>
+          </div>
+        </div>
+
+        <!-- Shop Area -->
+        <div id="shopArea" class="mt-4 bg-white p-4 rounded-3xl shadow-sm border-2 border-eco-100">
+          <div class="text-sm font-bold text-gray-500 mb-3 heading-font">เมนูไอเทม (เลือกแล้วกดที่เกาะ)</div>
+          <div class="flex gap-3 overflow-x-auto hide-scrollbar pb-2 px-1">
+            
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('move', 0)" id="shop-move">
+              <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-xl text-gray-600 mb-1"><i class="fa-solid fa-arrows-up-down-left-right"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">ย้ายที่ (ลาก)</div>
+              <div class="text-[10px] font-bold text-gray-400 mt-0.5">ฟรี</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('flower', 10)" id="shop-flower">
+              <div class="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-xl text-pink-500 mb-1"><i class="fa-solid fa-fan text-[18px]"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">ดอกไม้</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 10</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('tree', 30)" id="shop-tree">
+              <div class="w-10 h-10 bg-eco-100 rounded-full flex items-center justify-center text-xl text-eco-500 mb-1"><i class="fa-solid fa-tree"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">ต้นไม้</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 30</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('bush', 15)" id="shop-bush">
+              <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-xl text-green-600 mb-1"><i class="fa-solid fa-leaf"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">พุ่มไม้</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 15</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('birdhouse', 40)" id="shop-birdhouse">
+              <div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-xl text-orange-500 mb-1"><i class="fa-solid fa-crow"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">บ้านนก</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 40</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('solar', 80)" id="shop-solar">
+              <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-xl text-slate-500 mb-1"><i class="fa-solid fa-solar-panel"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">โซลาร์เซลล์</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 80</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('windmill', 100)" id="shop-windmill">
+              <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-xl text-blue-500 mb-1"><i class="fa-solid fa-fan"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">กังหันลม</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 100</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('fountain', 150)" id="shop-fountain">
+              <div class="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-xl text-cyan-500 mb-1"><i class="fa-solid fa-water"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">น้ำพุ</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 150</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('mysterybox', 50)" id="shop-mysterybox">
+              <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center text-xl text-purple-500 mb-1"><i class="fa-solid fa-gift text-[18px]"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">กล่องสุ่มแรร์</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 50</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="buyExpansion()" id="shop-expand">
+              <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-xl text-amber-500 mb-1"><i class="fa-solid fa-map-location-dot"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">ขยาย (+5)</div>
+              <div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> 150</div>
+            </div>
+
+            <div class="shop-item bg-white border-2 border-gray-200 rounded-2xl p-2 min-w-[70px] text-center cursor-pointer flex flex-col items-center" onclick="selectShopItem('delete', 0)" id="shop-delete">
+              <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-xl text-red-500 mb-1"><i class="fa-solid fa-shovel"></i></div>
+              <div class="text-[10px] font-bold text-gray-600">ถอนทิ้ง</div>
+              <div class="text-[10px] font-bold text-gray-400 mt-0.5">ฟรี</div>
+            </div>
+
+          </div>
+          <button onclick="saveGameToCloud()" class="w-full mt-3 py-2 bg-sky-500 text-white rounded-xl heading-font font-bold shadow hover:bg-sky-600 transition flex justify-center items-center gap-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกความคืบหน้า
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bg-white border-t border-gray-200 fixed bottom-0 w-full max-w-md pb-safe z-50 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+      <div class="flex justify-around items-center h-20 px-2">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex flex-col items-center p-2 relative w-14">
+          <i class="fa-solid fa-house text-xl mb-1"></i>
+          <span class="text-[10px] font-bold heading-font">หน้าแรก</span>
+        </button>
+        
+        <button onclick="switchTab('community')" id="nav-community" class="nav-btn flex flex-col items-center p-2 relative w-14">
+          <i class="fa-solid fa-users text-xl mb-1"></i>
+          <span class="text-[10px] font-bold heading-font">เพื่อน</span>
+        </button>
+
+        <button onclick="switchTab('game')" id="nav-game" class="nav-btn flex flex-col items-center p-2 relative w-16 -mt-6">
+          <div class="w-14 h-14 bg-eco-500 text-white rounded-full flex items-center justify-center text-2xl shadow-lg border-4 border-white">
+            <i class="fa-solid fa-leaf"></i>
+          </div>
+          <span class="text-[10px] font-bold heading-font mt-1">เกม</span>
+        </button>
+
+        <button onclick="switchTab('history')" id="nav-history" class="nav-btn flex flex-col items-center p-2 relative w-14">
+          <i class="fa-solid fa-book-open text-xl mb-1"></i>
+          <span class="text-[10px] font-bold heading-font">ประวัติ</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <script>
+    // ================= CONFIGURATION =================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpdVTEwoLgLyYsjcrtBk9QVzNWMw0IKcAgm8x9KpZ9cdOUDuJiw2CAFvEmP8IN5_X1/exec'; 
+
+    // ================= STATE =================
+    let currentIdStore = ''; 
+    let currentPassStore = ''; 
+    let studentInfo = null;
+    let studentStats = { totalWeight: 0, totalMoney: 0, totalPoints: 0 };
+    let txHistory = [];
+    let classmates = [];
+    
+    // Game State
+    let currentPoints = 0; 
+    let spentPoints = 0;
+    let selectedTool = null; // 'move', 'tree', 'flower', 'windmill', 'delete'
+    let selectedCost = 0;
+    
+    // Grid Size
+    let COLS = 5; // เริ่มต้นที่ 5 คอลัมน์ 
+    let ROWS = 5; // 5 แถว (รวม 25 ช่อง) ขยาย COLS ทีละ 1 จะได้ +5 ช่องเป๊ะๆ
+    let islandGrid = [];
+
+    // Drag and Drop Variables
+    let isDragging = false;
+    let draggedItem = null;
+    let dragOrigGrid = null;
+    let pointerX = 0;
+    let pointerY = 0;
+
+    // Costs
+    const ITEM_COSTS = { 'flower': 10, 'bush': 15, 'tree': 30, 'birdhouse': 40, 'solar': 80, 'windmill': 100, 'fountain': 150, 'expand': 150, 'mysterybox': 50, 'goldentree': 50, 'crystal': 50, 'castle': 50, 'snowman': 50 };
+
+    // ================= API =================
+    async function callBackend(action, payload) {
+      if (SCRIPT_URL.includes('YOUR_APP_SCRIPT_URL_HERE')) {
+         throw new Error("กรุณาใส่ SCRIPT_URL ที่ได้จาก Apps Script ครับ");
+      }
+      try {
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: action, ...payload })
+        });
+        return await response.json();
+      } catch (error) {
+        throw error;
+      }
+    }
+
+    function extractDateString(val) {
+        if (!val) return '';
+        if (typeof val === 'string') {
+            if (val.includes('T')) return val.split('T')[0];
+            if (val.match(/^\d{4}-\d{2}-\d{2}$/)) return val;
+        }
+        let d = new Date(val);
+        if(!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        return val;
+    }
+
+    // ================= APP LOGIC =================
+    async function doStudentLogin() {
+      const id = document.getElementById('studentId').value;
+      const pass = document.getElementById('studentPass').value;
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังโหลด...';
+      btn.disabled = true;
+
+      try {
+        let res = await callBackend('studentLogin', {studentId: id, password: pass});
+        
+        if (res.status === 'success') {
+          currentIdStore = id;
+          currentPassStore = pass;
+          
+          studentInfo = res.student;
+          studentStats = res.stats;
+          txHistory = res.history;
+          
+          // กำหนดขนาดเริ่มต้น
+          COLS = 5; ROWS = 5;
+          islandGrid = Array(COLS).fill().map(() => Array(ROWS).fill(null));
+          
+          // Parse Game State
+          try {
+             if (res.gameState) {
+                 const savedGrid = JSON.parse(res.gameState);
+                 if(Array.isArray(savedGrid) && savedGrid.length > 0 && Array.isArray(savedGrid[0])) {
+                     islandGrid = savedGrid;
+                     COLS = islandGrid.length;
+                     ROWS = islandGrid[0].length;
+                 }
+             }
+          } catch(e) { console.log("New game state"); }
+
+          updateDashboardUI();
+          renderHistory();
+          calculateCurrentPoints();
+          
+          document.getElementById('loginView').classList.add('hidden');
+          document.getElementById('mainAppView').classList.remove('hidden');
+          
+          initGameEngine();
+          loadClassmates();
+          
+          Swal.fire({
+            title: 'ยินดีต้อนรับ!',
+            text: `พิทักษ์โลกกันเถอะ ${studentInfo.name}`,
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        } else {
+          Swal.fire({icon: 'error', title: 'ว้าา...', text: res.message});
+        }
+      } catch (err) {
+        Swal.fire({icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString()});
+      } finally {
+        btn.innerHTML = 'เข้าสู่โลกสีเขียว <i class="fa-solid fa-arrow-right"></i>';
+        btn.disabled = false;
+      }
+    }
+
+    async function refreshData() {
+      const iconDash = document.getElementById('refreshIconDash');
+      const iconHist = document.getElementById('refreshIconHist');
+      if (iconDash) iconDash.classList.add('fa-spin');
+      if (iconHist) iconHist.classList.add('fa-spin');
+
+      try {
+        let res = await callBackend('studentLogin', {studentId: currentIdStore, password: currentPassStore});
+        if (res.status === 'success') {
+          studentStats = res.stats;
+          txHistory = res.history;
+          
+          updateDashboardUI();
+          renderHistory();
+          calculateCurrentPoints();
+          loadClassmates();
+          
+          Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'ดึงข้อมูลล่าสุดเรียบร้อย!', showConfirmButton: false, timer: 1500});
+        }
+      } catch (err) {
+        Swal.fire({toast: true, position: 'top-end', icon: 'error', title: 'ดึงข้อมูลล้มเหลว', showConfirmButton: false, timer: 1500});
+      } finally {
+        if (iconDash) iconDash.classList.remove('fa-spin');
+        if (iconHist) iconHist.classList.remove('fa-spin');
+      }
+    }
+
+    function logout() {
+      studentInfo = null;
+      currentIdStore = '';
+      currentPassStore = '';
+      
+      COLS = 5; ROWS = 5;
+      islandGrid = Array(COLS).fill().map(() => Array(ROWS).fill(null));
+      
+      document.getElementById('mainAppView').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('studentId').value = '';
+      document.getElementById('studentPass').value = '';
+      cancelAnimationFrame(animFrameId);
+      
+      // Reset modes
+      isVisitMode = false;
+      if (document.getElementById('shopArea')) document.getElementById('shopArea').classList.remove('hidden');
+      if (document.getElementById('visitModeHeader')) document.getElementById('visitModeHeader').classList.add('hidden');
+    }
+
+    function updateDashboardUI() {
+      document.getElementById('displayName').innerText = `${studentInfo.title}${studentInfo.name} ${studentInfo.surname}`;
+      document.getElementById('displayRoom').innerText = `ห้อง ${studentInfo.room}`;
+      document.getElementById('stat-weight').innerText = studentStats.totalWeight.toFixed(2);
+      document.getElementById('stat-money').innerText = studentStats.totalMoney.toFixed(2);
+      document.getElementById('stat-points').innerText = studentStats.totalPoints;
+    }
+
+    function renderHistory() {
+      const container = document.getElementById('historyList');
+      container.innerHTML = '';
+
+      if (txHistory.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-8 glass-card">ยังไม่มีประวัติการฝากขยะ<br>เริ่มคัดแยกขยะกันเถอะ!</div>';
+        return;
+      }
+
+      txHistory.forEach(t => {
+        const dStr = extractDateString(t.date);
+        const item = document.createElement('div');
+        item.className = 'glass-card p-4 flex justify-between items-center';
+        // ค่าเริ่มต้น (สำหรับฝากขยะปกติ)
+        let iconHtml = '<div class="w-10 h-10 bg-eco-100 rounded-full flex items-center justify-center text-eco-500"><i class="fa-solid fa-recycle"></i></div>';
+        let detailHtml = `<div class="text-xs text-gray-500"><i class="fa-regular fa-calendar"></i> ${dStr} | ${parseFloat(t.weight).toFixed(2)} กก.</div>`;
+        let moneyHtml = `<div class="heading-font font-bold text-blue-600">+฿${parseFloat(t.price).toFixed(2)}</div>`;
+        let pointsHtml = `<div class="text-xs font-bold text-amber-500"><i class="fa-solid fa-star"></i> ${t.points}</div>`;
+
+        // ตรวจสอบว่าเป็นการโอนแต้มหรือไม่ (น้ำหนักและเงินเป็น 0)
+        if (parseFloat(t.weight) === 0 && parseFloat(t.price) === 0) {
+            if (t.points < 0) {
+                // กรณีเป็นคนโอนแต้มให้เพื่อน (แต้มติดลบ)
+                iconHtml = '<div class="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center text-rose-500"><i class="fa-solid fa-gift"></i></div>';
+                detailHtml = `<div class="text-xs text-gray-500"><i class="fa-regular fa-calendar"></i> ${dStr}</div>`;
+                moneyHtml = ``; // ซ่อนยอดเงิน
+                pointsHtml = `<div class="heading-font font-bold text-rose-500">${t.points} <i class="fa-solid fa-star"></i></div>`;
+            } else {
+                // กรณีเป็นคนรับโอนแต้ม (แต้มเป็นบวก)
+                iconHtml = '<div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-500"><i class="fa-solid fa-hand-holding-heart"></i></div>';
+                detailHtml = `<div class="text-xs text-gray-500"><i class="fa-regular fa-calendar"></i> ${dStr}</div>`;
+                moneyHtml = ``; // ซ่อนยอดเงิน
+                pointsHtml = `<div class="heading-font font-bold text-amber-500">+${t.points} <i class="fa-solid fa-star"></i></div>`;
+            }
+        }
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+             ${iconHtml}
+             <div>
+               <div class="heading-font font-bold text-gray-800">${t.wasteType}</div>
+               ${detailHtml}
+             </div>
+          </div>
+          <div class="text-right">
+             ${moneyHtml}
+             ${pointsHtml}
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
+      document.getElementById('view-' + tabId).classList.remove('hidden');
+      
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('nav-' + tabId).classList.add('active');
+
+      if (tabId === 'game') resizeCanvas();
+    }
+
+    // ================= COMMUNITY LOGIC =================
+    let isVisitMode = false;
+    let myIslandBackup = null;
+    let myColsBackup = 5;
+
+    async function loadClassmates() {
+      const icon = document.getElementById('refreshIconCommunity');
+      if(icon) icon.classList.add('fa-spin');
+      try {
+        let res = await callBackend('getClassmates', { room: studentInfo.room, currentId: studentInfo.id });
+        if (res.status === 'success') {
+          classmates = res.data;
+          renderClassmates();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if(icon) icon.classList.remove('fa-spin');
+      }
+    }
+
+    function renderClassmates() {
+      const container = document.getElementById('classmateList');
+      container.innerHTML = '';
+      
+      if (classmates.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-8">ไม่มีเพื่อนในห้องนี้</div>';
+        return;
+      }
+
+      classmates.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'glass-card p-3 flex justify-between items-center';
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+             <div class="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center text-sky-500 font-bold">${c.name.charAt(0)}</div>
+             <div>
+               <div class="heading-font font-bold text-gray-800">${c.name} ${c.surname.substring(0,3)}.</div>
+               <div class="text-[10px] text-gray-500">รหัส: ${c.id}</div>
+             </div>
+          </div>
+          <div class="flex flex-col gap-1">
+             <button onclick="visitFriend('${c.id}', '${c.name}')" class="bg-eco-100 text-eco-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-eco-200 transition border border-eco-200"><i class="fa-solid fa-eye"></i> ส่องเกาะ</button>
+             <button onclick="transferPointsUI('${c.id}', '${c.name}')" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-amber-200 transition border border-amber-200"><i class="fa-solid fa-gift"></i> โอนแต้ม</button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    async function visitFriend(friendId, friendName) {
+      Swal.fire({ title: 'กำลังเดินทาง...', didOpen: () => Swal.showLoading() });
+      try {
+        let res = await callBackend('getFriendIsland', { friendId: friendId });
+        if (res.status === 'success') {
+          // สำรองเกาะตัวเองไว้
+          myIslandBackup = JSON.parse(JSON.stringify(islandGrid));
+          myColsBackup = COLS;
+          
+          let friendGrid = Array(5).fill().map(() => Array(5).fill(null));
+          if (res.gameState) {
+             try { 
+                const parsed = JSON.parse(res.gameState);
+                if(Array.isArray(parsed) && parsed.length > 0) {
+                    friendGrid = parsed;
+                }
+             } catch(e) {}
+          }
+          
+          islandGrid = friendGrid;
+          COLS = islandGrid.length;
+          ROWS = islandGrid[0].length;
+          
+          // ล็อกปุ่มให้แก้ไขไม่ได้
+          isVisitMode = true;
+          document.getElementById('shopArea').classList.add('hidden');
+          document.getElementById('visitModeHeader').classList.remove('hidden');
+          
+          Swal.close();
+          switchTab('game');
+          
+          Swal.fire({toast: true, position: 'top', icon: 'info', title: `กำลังชมเกาะของ ${friendName}`, showConfirmButton: false, timer: 2000});
+        }
+      } catch (err) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเข้าชมเกาะเพื่อนได้', 'error');
+      }
+    }
+
+    function returnHome() {
+      // ดึงเกาะตัวเองกลับมา
+      islandGrid = JSON.parse(JSON.stringify(myIslandBackup));
+      COLS = myColsBackup;
+      ROWS = islandGrid[0].length;
+      
+      // ปลดล็อกปุ่ม
+      isVisitMode = false;
+      document.getElementById('shopArea').classList.remove('hidden');
+      document.getElementById('visitModeHeader').classList.add('hidden');
+      resizeCanvas();
+    }
+
+    function transferPointsUI(friendId, friendName) {
+      Swal.fire({
+        title: `โอนแต้มให้ ${friendName}`,
+        html: `<div class="text-sm mb-2">แต้มที่โอนได้: <b class="text-amber-500">${currentPoints} แต้ม</b></div>
+               <input type="number" id="transferAmount" class="swal2-input text-center font-bold" placeholder="ระบุจำนวนแต้ม" min="1" max="${currentPoints}">`,
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันโอน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#f59e0b',
+        preConfirm: () => {
+          const amt = parseInt(document.getElementById('transferAmount').value);
+          if (!amt || amt <= 0) return Swal.showValidationMessage('กรุณาระบุจำนวนแต้มที่ถูกต้อง');
+          if (amt > currentPoints) return Swal.showValidationMessage('แต้มของคุณไม่เพียงพอ');
+          return amt;
+        }
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const amount = result.value;
+          Swal.fire({ title: 'กำลังโอนแต้ม...', didOpen: () => Swal.showLoading() });
+          
+          const dStr = extractDateString(new Date());
+          const payload = {
+            senderId: studentInfo.id,
+            senderName: studentInfo.name,
+            receiverId: friendId,
+            receiverName: friendName,
+            room: studentInfo.room,
+            amount: amount,
+            date: dStr
+          };
+          
+          try {
+             let res = await callBackend('transferPoints', { data: payload });
+             if (res.status === 'success') {
+                Swal.fire('สำเร็จ!', `โอน ${amount} แต้มให้ ${friendName} แล้ว`, 'success');
+                refreshData(); // อัปเดตยอดแต้มตัวเอง
+             }
+          } catch(e) {
+             Swal.fire('ล้มเหลว', 'เกิดข้อผิดพลาดในการโอน', 'error');
+          }
+        }
+      });
+    }
+
+    // ================= GAME ENGINE (HTML5 CANVAS) =================
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let animFrameId;
+    let canvasW, canvasH;
+    let tileSize;
+    let offsetX, offsetY;
+
+    function calculateCurrentPoints() {
+      spentPoints = 0;
+      for (let x = 0; x < COLS; x++) {
+        for (let y = 0; y < ROWS; y++) {
+          if (islandGrid[x][y] && ITEM_COSTS[islandGrid[x][y]]) {
+            spentPoints += ITEM_COSTS[islandGrid[x][y]];
+          }
+        }
+      }
+      
+      // เพิ่มค่าใช้จ่ายจากการขยายที่ดิน (เกินจาก 5 คอลัมน์แรก)
+      const extraCols = Math.max(0, COLS - 5);
+      spentPoints += (extraCols * ITEM_COSTS['expand']);
+
+      currentPoints = studentStats.totalPoints - spentPoints;
+      
+      document.getElementById('stat-spent').innerText = spentPoints;
+      document.getElementById('game-current-points').innerText = currentPoints;
+      updateShopUI();
+    }
+
+    function selectShopItem(type, cost) {
+      document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
+      
+      if (type !== 'delete' && type !== 'move' && currentPoints < cost) {
+         Swal.fire({toast: true, position: 'top-end', icon: 'error', title: 'แต้มไม่พอจ้า', showConfirmButton: false, timer: 1500});
+         selectedTool = null;
+         return;
+      }
+      
+      selectedTool = type;
+      selectedCost = cost;
+      document.getElementById('shop-' + type).classList.add('selected');
+    }
+
+    function buyExpansion() {
+       if (currentPoints >= ITEM_COSTS['expand']) {
+          // เพิ่มที่ดินโดยเพิ่มอีก 1 คอลัมน์ (ซึ่งมีแถว = 5 แถว จะได้เพิ่ม 5 ช่องพอดี)
+          islandGrid.push(Array(ROWS).fill(null));
+          COLS++;
+          
+          calculateCurrentPoints();
+          resizeCanvas(); // จัดกล้องใหม่
+          createParticles(canvasW/2, canvasH/2, '#fcd34d');
+          
+          Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'ขยายเกาะสำเร็จ! (+5 ช่อง)', showConfirmButton: false, timer: 2000});
+          saveGameToCloud();
+       } else {
+          Swal.fire({toast: true, position: 'top-end', icon: 'error', title: 'แต้มไม่พอซื้อที่ดิน', showConfirmButton: false, timer: 1500});
+       }
+    }
+
+    function updateShopUI() {
+      ['flower', 'bush', 'tree', 'birdhouse', 'solar', 'windmill', 'fountain', 'expand', 'mysterybox'].forEach(type => {
+         const el = document.getElementById('shop-' + type);
+         if (el && currentPoints < ITEM_COSTS[type]) {
+             el.classList.add('disabled');
+         } else if (el) {
+             el.classList.remove('disabled');
+         }
+      });
+    }
+
+    function resizeCanvas() {
+      const container = document.getElementById('gameContainer');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+      canvasW = canvas.width;
+      canvasH = canvas.height;
+      
+      tileSize = Math.min(canvasW / (COLS + 1.5), canvasH / (ROWS + 1.5));
+      offsetX = (canvasW - (COLS * tileSize)) / 2;
+      offsetY = (canvasH - (ROWS * tileSize)) / 2 + (tileSize/2); 
+    }
+
+    // === Mouse/Touch Event Handlers ===
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function getGridPos(px, py) {
+       const gridX = Math.floor((px - offsetX) / tileSize);
+       const gridY = Math.floor((py - offsetY) / tileSize);
+       if (gridX >= 0 && gridX < COLS && gridY >= 0 && gridY < ROWS) return {x: gridX, y: gridY};
+       return null;
+    }
+
+    function handlePointerDown(e) {
+       if (isVisitMode) return; // ล็อกไม่ให้แก้เกาะเพื่อน
+       if (!selectedTool) return;
+       const pos = getPointerPos(e);
+       pointerX = pos.x; pointerY = pos.y;
+       const gridPos = getGridPos(pos.x, pos.y);
+
+       if (!gridPos) return;
+
+       if (selectedTool === 'move') {
+           if (islandGrid[gridPos.x][gridPos.y]) {
+               isDragging = true;
+               draggedItem = islandGrid[gridPos.x][gridPos.y];
+               dragOrigGrid = gridPos;
+               islandGrid[gridPos.x][gridPos.y] = null; // ย้ายออกจากกระดานชั่วคราว
+           }
+       } else if (selectedTool === 'delete') {
+           if (islandGrid[gridPos.x][gridPos.y]) {
+               islandGrid[gridPos.x][gridPos.y] = null;
+               calculateCurrentPoints();
+               createParticles(pos.x, pos.y, '#9ca3af');
+           }
+       } else { // ปลูก
+           if (!islandGrid[gridPos.x][gridPos.y]) {
+               if (currentPoints >= selectedCost) {
+                   if (selectedTool === 'mysterybox') {
+                       // สุ่มของแรร์
+                       const rareItems = ['goldentree', 'crystal', 'castle', 'snowman'];
+                       const randomItem = rareItems[Math.floor(Math.random() * rareItems.length)];
+                       islandGrid[gridPos.x][gridPos.y] = randomItem;
+                       calculateCurrentPoints();
+                       createParticles(pos.x, pos.y, '#a855f7');
+                       
+                       let itemNameTH = '';
+                       if (randomItem === 'goldentree') itemNameTH = 'ต้นไม้ทองคำ';
+                       if (randomItem === 'crystal') itemNameTH = 'คริสตัลเวทมนตร์';
+                       if (randomItem === 'castle') itemNameTH = 'ปราสาททราย';
+                       if (randomItem === 'snowman') itemNameTH = 'ตุ๊กตาหิมะ';
+                       
+                       Swal.fire({
+                          title: 'ยินดีด้วย!',
+                          html: `คุณเปิดกล่องสุ่มได้ <b>${itemNameTH}</b> ระดับแรร์!`,
+                          icon: 'success',
+                          confirmButtonColor: '#22c55e'
+                       });
+                       
+                       selectedTool = null;
+                       document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('selected'));
+                   } else {
+                       islandGrid[gridPos.x][gridPos.y] = selectedTool;
+                       calculateCurrentPoints();
+                       createParticles(pos.x, pos.y, '#4ade80');
+                   }
+               } else {
+                   Swal.fire({toast: true, position: 'top-end', icon: 'warning', title: 'แต้มหมดแล้ว!', showConfirmButton: false, timer: 1500});
+               }
+           } else {
+               Swal.fire({toast: true, position: 'top-end', icon: 'info', title: 'ช่องนี้มีของแล้วจ้า', showConfirmButton: false, timer: 1000});
+           }
+       }
+    }
+
+    function handlePointerMove(e) {
+       if (!isDragging) return;
+       e.preventDefault(); // ป้องกันหน้าจอเลื่อนเวลาลาก
+       const pos = getPointerPos(e);
+       pointerX = pos.x; pointerY = pos.y;
+    }
+
+    function handlePointerUp(e) {
+       if (isDragging) {
+           e.preventDefault();
+           let gridPos = null;
+           
+           if (e.changedTouches) {
+               const rect = canvas.getBoundingClientRect();
+               gridPos = getGridPos(e.changedTouches[0].clientX - rect.left, e.changedTouches[0].clientY - rect.top);
+           } else {
+               gridPos = getGridPos(pointerX, pointerY);
+           }
+
+           // ถ้าย้ายไปช่องว่าง ให้วางสำเร็จ
+           if (gridPos && islandGrid[gridPos.x][gridPos.y] === null) {
+               islandGrid[gridPos.x][gridPos.y] = draggedItem;
+               createParticles(pointerX, pointerY, '#fbbf24');
+           } else {
+               // ถ้าย้ายไม่สำเร็จ หรือวางทับของเดิม ให้เด้งกลับที่เดิม
+               islandGrid[dragOrigGrid.x][dragOrigGrid.y] = draggedItem;
+           }
+           
+           isDragging = false;
+           draggedItem = null;
+       }
+    }
+
+    // Attach Event Listeners
+    canvas.addEventListener('mousedown', handlePointerDown);
+    canvas.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerUp);
+    
+    canvas.addEventListener('touchstart', handlePointerDown, {passive: false});
+    canvas.addEventListener('touchmove', handlePointerMove, {passive: false});
+    window.addEventListener('touchend', handlePointerUp);
+    window.addEventListener('touchcancel', handlePointerUp);
+
+    // ================= TAKE SNAPSHOT =================
+    function takeSnapshot() {
+       try {
+           const dataURL = canvas.toDataURL('image/png');
+           const link = document.createElement('a');
+           link.download = `EcoValley_${studentInfo.name}.png`;
+           link.href = dataURL;
+           link.click();
+           Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'ดาวน์โหลดภาพสำเร็จ! แบ่งปันเลย!', showConfirmButton: false, timer: 2000});
+       } catch (err) {
+           Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกภาพได้', 'error');
+       }
+    }
+
+    // ================= GRAPHICS RENDERER =================
+    let particles = [];
+    function createParticles(x, y, color) {
+       for(let i=0; i<10; i++){
+           particles.push({ x: x, y: y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, life: 1, color: color });
+       }
+    }
+
+    function drawGrid() {
+      ctx.fillStyle = '#86efac';
+      ctx.beginPath();
+      ctx.roundRect(offsetX - 10, offsetY - 10, COLS*tileSize + 20, ROWS*tileSize + 20, 20);
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#4ade80';
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+      ctx.lineWidth = 2;
+      for (let x = 0; x <= COLS; x++) {
+          ctx.beginPath(); ctx.moveTo(offsetX + x*tileSize, offsetY); ctx.lineTo(offsetX + x*tileSize, offsetY + ROWS*tileSize); ctx.stroke();
+      }
+      for (let y = 0; y <= ROWS; y++) {
+          ctx.beginPath(); ctx.moveTo(offsetX, offsetY + y*tileSize); ctx.lineTo(offsetX + COLS*tileSize, offsetY + y*tileSize); ctx.stroke();
+      }
+    }
+
+    function drawItem(type, cx, cy, time) {
+       const half = tileSize / 2;
+       ctx.save();
+       ctx.translate(cx, cy);
+
+       if (type === 'tree') {
+           ctx.fillStyle = '#713f12';
+           ctx.fillRect(-tileSize*0.1, 0, tileSize*0.2, tileSize*0.4);
+           const swing = Math.sin(time * 0.002) * 2; 
+           ctx.translate(swing, 0);
+           ctx.fillStyle = '#16a34a';
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.2, tileSize*0.3, 0, Math.PI*2); ctx.fill();
+           ctx.fillStyle = '#22c55e';
+           ctx.beginPath(); ctx.arc(-tileSize*0.2, -tileSize*0.1, tileSize*0.25, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(tileSize*0.2, -tileSize*0.1, tileSize*0.25, 0, Math.PI*2); ctx.fill();
+       } 
+       else if (type === 'flower') {
+           ctx.strokeStyle = '#22c55e'; ctx.lineWidth = 3;
+           ctx.beginPath(); ctx.moveTo(0, tileSize*0.3); ctx.lineTo(0, 0); ctx.stroke();
+           ctx.rotate(time * 0.001);
+           ctx.fillStyle = '#ec4899';
+           for(let i=0; i<5; i++){
+               ctx.rotate((Math.PI*2)/5);
+               ctx.beginPath(); ctx.arc(0, -tileSize*0.15, tileSize*0.12, 0, Math.PI*2); ctx.fill();
+           }
+           ctx.fillStyle = '#fef08a';
+           ctx.beginPath(); ctx.arc(0, 0, tileSize*0.1, 0, Math.PI*2); ctx.fill();
+       }
+       else if (type === 'bush') {
+           ctx.fillStyle = '#15803d'; // dark green
+           const breathe = Math.sin(time * 0.003) * 1.5; // หายใจพองยุบเบาๆ
+           ctx.translate(0, tileSize*0.1 + breathe);
+           ctx.beginPath(); ctx.arc(-tileSize*0.15, 0, tileSize*0.2, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(tileSize*0.15, 0, tileSize*0.2, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.15, tileSize*0.25, 0, Math.PI*2); ctx.fill();
+           ctx.fillStyle = '#ef4444'; // red berries
+           ctx.beginPath(); ctx.arc(-tileSize*0.1, -tileSize*0.1, 3, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(tileSize*0.1, -tileSize*0.15, 3, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(0, tileSize*0.05, 3, 0, Math.PI*2); ctx.fill();
+       }
+       else if (type === 'birdhouse') {
+           ctx.fillStyle = '#78350f'; // pole
+           ctx.fillRect(-2, 0, 4, tileSize*0.4);
+           ctx.translate(0, -tileSize*0.15);
+           ctx.fillStyle = '#d97706'; // box
+           ctx.fillRect(-tileSize*0.15, -tileSize*0.15, tileSize*0.3, tileSize*0.3);
+           ctx.fillStyle = '#b45309'; // roof
+           ctx.beginPath(); ctx.moveTo(-tileSize*0.2, -tileSize*0.15); ctx.lineTo(0, -tileSize*0.3); ctx.lineTo(tileSize*0.2, -tileSize*0.15); ctx.fill();
+           ctx.fillStyle = '#451a03'; // hole
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.05, 4, 0, Math.PI*2); ctx.fill();
+           
+           // Animated bird flying around
+           ctx.rotate(time * 0.002);
+           ctx.fillStyle = '#38bdf8'; // blue bird
+           ctx.beginPath(); ctx.arc(tileSize*0.3, 0, 3, 0, Math.PI*2); ctx.fill();
+       }
+       else if (type === 'solar') {
+           ctx.fillStyle = '#94a3b8'; // stand
+           ctx.fillRect(-3, tileSize*0.1, 6, tileSize*0.3);
+           ctx.translate(0, tileSize*0.05);
+           ctx.rotate(Math.PI / 8); // slanted
+           
+           // Panel base
+           ctx.fillStyle = '#0ea5e9'; 
+           ctx.fillRect(-tileSize*0.3, -tileSize*0.2, tileSize*0.6, tileSize*0.4);
+           ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 1.5;
+           ctx.strokeRect(-tileSize*0.3, -tileSize*0.2, tileSize*0.6, tileSize*0.4);
+           
+           // Grid lines
+           ctx.beginPath(); ctx.moveTo(0, -tileSize*0.2); ctx.lineTo(0, tileSize*0.2); ctx.stroke();
+           ctx.beginPath(); ctx.moveTo(-tileSize*0.3, 0); ctx.lineTo(tileSize*0.3, 0); ctx.stroke();
+       }
+       else if (type === 'fountain') {
+           // Base
+           ctx.fillStyle = '#94a3b8'; 
+           ctx.beginPath(); ctx.ellipse(0, tileSize*0.2, tileSize*0.35, tileSize*0.15, 0, 0, Math.PI*2); ctx.fill();
+           ctx.fillStyle = '#e2e8f0'; 
+           ctx.beginPath(); ctx.ellipse(0, tileSize*0.15, tileSize*0.3, tileSize*0.12, 0, 0, Math.PI*2); ctx.fill();
+           
+           // Water Pool
+           ctx.fillStyle = '#38bdf8';
+           ctx.beginPath(); ctx.ellipse(0, tileSize*0.15, tileSize*0.25, tileSize*0.1, 0, 0, Math.PI*2); ctx.fill();
+           
+           // Pillar
+           ctx.fillStyle = '#cbd5e1';
+           ctx.fillRect(-4, -tileSize*0.15, 8, tileSize*0.3);
+           ctx.beginPath(); ctx.ellipse(0, -tileSize*0.15, tileSize*0.15, tileSize*0.05, 0, 0, Math.PI*2); ctx.fill();
+           
+           // Animated water spray
+           const sprayHeight = Math.abs(Math.sin(time*0.005)) * tileSize*0.15;
+           ctx.fillStyle = 'rgba(125, 211, 252, 0.8)';
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.2 - sprayHeight, 4, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(-6, -tileSize*0.15 - sprayHeight*0.8, 3, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(6, -tileSize*0.15 - sprayHeight*0.8, 3, 0, Math.PI*2); ctx.fill();
+       }
+       else if (type === 'windmill') {
+           ctx.fillStyle = '#e2e8f0';
+           ctx.beginPath(); ctx.moveTo(-tileSize*0.2, tileSize*0.4); ctx.lineTo(tileSize*0.2, tileSize*0.4);
+           ctx.lineTo(tileSize*0.1, -tileSize*0.2); ctx.lineTo(-tileSize*0.1, -tileSize*0.2); ctx.fill();
+           ctx.translate(0, -tileSize*0.2);
+           ctx.rotate(time * 0.002); 
+           ctx.fillStyle = '#38bdf8';
+           for(let i=0; i<4; i++){
+               ctx.rotate(Math.PI/2);
+               ctx.beginPath(); ctx.roundRect(0, -2, tileSize*0.4, 4, 2); ctx.fill();
+           }
+           ctx.fillStyle = '#0f172a';
+           ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+       }
+       
+       // --- RARE ITEMS (Mystery Box) ---
+       else if (type === 'goldentree') {
+           ctx.fillStyle = '#b45309'; // brown trunk
+           ctx.fillRect(-tileSize*0.1, 0, tileSize*0.2, tileSize*0.4);
+           const swing = Math.sin(time * 0.002) * 2; 
+           ctx.translate(swing, 0);
+           
+           let grad = ctx.createRadialGradient(0, -tileSize*0.2, 0, 0, -tileSize*0.2, tileSize*0.4);
+           grad.addColorStop(0, '#fef08a');
+           grad.addColorStop(1, '#eab308');
+           ctx.fillStyle = grad;
+           
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.2, tileSize*0.3, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(-tileSize*0.2, -tileSize*0.1, tileSize*0.25, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(tileSize*0.2, -tileSize*0.1, tileSize*0.25, 0, Math.PI*2); ctx.fill();
+           
+           ctx.fillStyle = '#ffffff';
+           if (Math.floor(time / 200) % 2 === 0) {
+               ctx.beginPath(); ctx.arc(-tileSize*0.1, -tileSize*0.3, 2, 0, Math.PI*2); ctx.fill();
+               ctx.beginPath(); ctx.arc(tileSize*0.15, -tileSize*0.15, 2, 0, Math.PI*2); ctx.fill();
+           }
+       }
+       else if (type === 'crystal') {
+           ctx.translate(0, Math.sin(time * 0.003) * 3); 
+           ctx.fillStyle = '#c084fc'; 
+           ctx.beginPath(); ctx.moveTo(0, -tileSize*0.4); ctx.lineTo(-tileSize*0.15, 0); ctx.lineTo(0, tileSize*0.1); ctx.lineTo(tileSize*0.15, 0); ctx.fill();
+           ctx.fillStyle = '#e879f9'; 
+           ctx.beginPath(); ctx.moveTo(0, -tileSize*0.4); ctx.lineTo(0, tileSize*0.1); ctx.lineTo(tileSize*0.15, 0); ctx.fill();
+           
+           ctx.globalAlpha = 0.3 + Math.sin(time * 0.005) * 0.1;
+           ctx.fillStyle = '#f0abfc';
+           ctx.beginPath(); ctx.ellipse(0, tileSize*0.1, tileSize*0.2, tileSize*0.08, 0, 0, Math.PI*2); ctx.fill();
+           ctx.globalAlpha = 1.0;
+       }
+       else if (type === 'castle') {
+           ctx.fillStyle = '#fde047'; 
+           ctx.fillRect(-tileSize*0.3, -tileSize*0.1, tileSize*0.6, tileSize*0.3); 
+           ctx.fillRect(-tileSize*0.25, -tileSize*0.3, tileSize*0.15, tileSize*0.2); 
+           ctx.fillRect(tileSize*0.1, -tileSize*0.3, tileSize*0.15, tileSize*0.2); 
+           
+           ctx.fillStyle = '#eab308'; 
+           ctx.beginPath(); ctx.moveTo(-tileSize*0.25, -tileSize*0.3); ctx.lineTo(-tileSize*0.175, -tileSize*0.4); ctx.lineTo(-tileSize*0.1, -tileSize*0.3); ctx.fill();
+           ctx.beginPath(); ctx.moveTo(tileSize*0.1, -tileSize*0.3); ctx.lineTo(tileSize*0.175, -tileSize*0.4); ctx.lineTo(tileSize*0.25, -tileSize*0.3); ctx.fill();
+           
+           ctx.fillStyle = '#a16207'; 
+           ctx.beginPath(); ctx.arc(0, tileSize*0.2, tileSize*0.1, Math.PI, Math.PI*2); ctx.fill();
+       }
+       else if (type === 'snowman') {
+           ctx.fillStyle = '#ffffff';
+           ctx.beginPath(); ctx.arc(0, tileSize*0.1, tileSize*0.2, 0, Math.PI*2); ctx.fill(); 
+           ctx.beginPath(); ctx.arc(0, -tileSize*0.1, tileSize*0.15, 0, Math.PI*2); ctx.fill(); 
+           
+           ctx.fillStyle = '#0f172a'; 
+           ctx.beginPath(); ctx.arc(-4, -tileSize*0.15, 2, 0, Math.PI*2); ctx.fill();
+           ctx.beginPath(); ctx.arc(4, -tileSize*0.15, 2, 0, Math.PI*2); ctx.fill();
+           
+           ctx.fillStyle = '#f97316'; 
+           ctx.beginPath(); ctx.moveTo(0, -tileSize*0.1); ctx.lineTo(10, -tileSize*0.08); ctx.lineTo(0, -tileSize*0.06); ctx.fill();
+       }
+       
+       ctx.restore();
+    }
+
+    function gameLoop(timestamp) {
+      ctx.clearRect(0, 0, canvasW, canvasH);
+      
+      // พื้นน้ำ
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(0, 0, canvasW, canvasH);
+      ctx.fillStyle = '#38bdf8';
+      for(let i=0; i<5; i++){
+          ctx.beginPath();
+          ctx.arc( (timestamp*0.05 + i*100) % (canvasW+100) - 50, canvasH*0.2 + (i*50) + Math.sin(timestamp*0.002 + i)*10, 30, 0, Math.PI);
+          ctx.fill();
+      }
+
+      drawGrid();
+
+      // วาดของที่ตั้งอยู่บนกริด
+      for (let x = 0; x < COLS; x++) {
+        for (let y = 0; y < ROWS; y++) {
+          if (islandGrid[x][y]) {
+             const cx = offsetX + (x * tileSize) + (tileSize/2);
+             const cy = offsetY + (y * tileSize) + (tileSize/2);
+             drawItem(islandGrid[x][y], cx, cy, timestamp);
+          }
+        }
+      }
+
+      // วาดของที่กำลังถูกลาก (อยู่ติดนิ้ว)
+      if (isDragging && draggedItem) {
+          drawItem(draggedItem, pointerX, pointerY, timestamp);
+      }
+
+      // เอฟเฟกต์วิบวับ
+      for(let i = particles.length-1; i>=0; i--){
+          let p = particles[i];
+          p.x += p.vx; p.y += p.vy; p.life -= 0.05;
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+          ctx.globalAlpha = 1.0;
+          if(p.life <= 0) particles.splice(i, 1);
+      }
+
+      animFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    function initGameEngine() {
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      document.getElementById('gameLoading').classList.add('opacity-0', 'pointer-events-none');
+      animFrameId = requestAnimationFrame(gameLoop);
+    }
+
+    async function saveGameToCloud() {
+      const btn = document.querySelector('button[onclick="saveGameToCloud()"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+      
+      const gameStateJSON = JSON.stringify(islandGrid);
+      
+      try {
+        let res = await callBackend('saveGameState', { studentId: studentInfo.id, gameState: gameStateJSON });
+        if (res.status === 'success') {
+           Swal.fire({toast: true, position: 'top-end', icon: 'success', title: 'บันทึกเกาะสำเร็จ!', showConfirmButton: false, timer: 1500});
+        }
+      } catch(e) {
+         Swal.fire('ข้อผิดพลาด', 'ไม่สามารถบันทึกเกาะได้', 'error');
+      } finally {
+         btn.innerHTML = originalText;
+      }
+    }
+
+  </script>
+</body>
+</html>
