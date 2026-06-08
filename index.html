@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thaingam-ธนาคารขยะ</title>
+    <title>EcoPink ธนาคารขยะ</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -142,7 +142,7 @@
                         alt="EcoPink Logo"
                         class="w-full h-full object-contain p-2 transition-transform duration-300 hover:scale-105">
                 </div>
-                <h1 class="text-4xl font-bold text-vintage-800 tracking-wide">Recyclable Waste Bank</h1>
+                <h1 class="text-4xl font-bold text-vintage-800 tracking-wide">ธนาคารขยะรักษ์โลก</h1>
                 <p class="text-sm text-vintage-600 mt-2 font-medium">โรงเรียนชุมชนวัดไทยงาม</p>
             </div>
 
@@ -190,7 +190,7 @@
                     <div class="flex items-center gap-3 text-vintage-700">
                         <img src="https://res.cloudinary.com/gukkghu/image/upload/v1646575846/gukkghu/%E0%B8%87%E0%B8%B2%E0%B8%99%E0%B8%AD%E0%B8%AD%E0%B8%81%E0%B9%81%E0%B8%9A%E0%B8%9A%E0%B8%97%E0%B8%B5%E0%B9%88%E0%B9%84%E0%B8%A1%E0%B9%88%E0%B8%A1%E0%B8%B5%E0%B8%8A%E0%B8%B7%E0%B9%88%E0%B8%AD_aytvpq.png"
                             alt="EcoPink Logo" class="w-20 p-0.5">
-                        <span class="vintage-title font-bold text-2xl tracking-wide">Recyclable Waste Bank</span>
+                        <span class="vintage-title font-bold text-2xl tracking-wide">EcoPink Bank</span>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -1600,9 +1600,19 @@
                <div class="font-bold text-vintage-800 text-sm">${t.name}</div>
                <div class="text-xs text-vintage-500 mt-1">รหัส: ${t.id}</div>
              </div>
-             <div class="text-right">
-               <div class="text-sm font-bold text-vintage-700">฿${t.price}/กก.</div>
-               <div class="text-xs text-gold-600 mt-1 font-medium"><i class="fa-solid fa-star"></i> ${t.points} แต้ม</div>
+             <div class="flex items-center gap-4">
+               <div class="text-right">
+                 <div class="text-sm font-bold text-vintage-700">฿${t.price}/กก.</div>
+                 <div class="text-xs text-gold-600 mt-1 font-medium"><i class="fa-solid fa-star"></i> ${t.points} แต้ม</div>
+               </div>
+               <div class="flex flex-col gap-2 border-l border-vintage-200 pl-3">
+                 <button onclick="editWasteType('${t.id}')" class="text-blue-500 hover:text-blue-700 transition text-sm" title="แก้ไข">
+                   <i class="fa-solid fa-pen-to-square"></i>
+                 </button>
+                 <button onclick="deleteWasteType('${t.id}')" class="text-red-400 hover:text-red-600 transition text-sm" title="ลบ">
+                   <i class="fa-solid fa-trash-can"></i>
+                 </button>
+               </div>
              </div>
           </div>
         `;
@@ -1633,6 +1643,80 @@
                 btn.innerHTML = '<i class="fa-solid fa-plus"></i> บันทึกเข้าระบบ';
                 btn.disabled = false;
             }
+        }
+
+        async function editWasteType(id) {
+            const waste = wasteTypes.find(w => w.id.toString() === id.toString());
+            if (!waste) return;
+
+            const { value: formValues } = await Swal.fire({
+                title: 'แก้ไขประเภทขยะ',
+                html:
+                    `<div class="text-left">
+                        <label class="block text-sm text-vintage-700 mb-1">ชื่อประเภทขยะ</label>
+                        <input id="swal-wName" class="swal2-input !w-full !m-0 !mb-3" value="${waste.name}">
+                        <label class="block text-sm text-vintage-700 mb-1">ราคา (บาท/กก.)</label>
+                        <input id="swal-wPrice" type="number" step="0.01" class="swal2-input !w-full !m-0 !mb-3" value="${waste.price}">
+                        <label class="block text-sm text-vintage-700 mb-1">แต้มสะสม (/กก.)</label>
+                        <input id="swal-wPoints" type="number" class="swal2-input !w-full !m-0" value="${waste.points}">
+                    </div>`,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'บันทึก',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#16a34a',
+                preConfirm: () => {
+                    return {
+                        id: id,
+                        name: document.getElementById('swal-wName').value,
+                        price: document.getElementById('swal-wPrice').value,
+                        points: document.getElementById('swal-wPoints').value
+                    }
+                }
+            });
+
+            if (formValues) {
+                Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                try {
+                    let res = await callBackend('editWasteType', { data: formValues });
+                    if (res.status === 'success') {
+                        Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'แก้ไขประเภทขยะเรียบร้อย', timer: 1500, showConfirmButton: false });
+                        loadWasteTypes();
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: res.message, confirmButtonColor: '#16a34a' });
+                    }
+                } catch (err) {
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString(), confirmButtonColor: '#16a34a' });
+                }
+            }
+        }
+
+        async function deleteWasteType(id) {
+            Swal.fire({
+                title: 'ยืนยันการลบ?',
+                text: "คุณต้องการลบประเภทขยะนี้ใช่หรือไม่? ข้อมูลการรับฝากเดิมจะยังคงอยู่",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ลบ',
+                cancelButtonText: 'ยกเลิก'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        let res = await callBackend('deleteWasteType', { id: id });
+                        if (res.status === 'success') {
+                            Swal.fire({ icon: 'success', title: 'สำเร็จ', text: 'ลบประเภทขยะเรียบร้อย', timer: 1500, showConfirmButton: false });
+                            loadWasteTypes();
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'ข้อผิดพลาด', text: res.message, confirmButtonColor: '#16a34a' });
+                        }
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: err.toString(), confirmButtonColor: '#16a34a' });
+                    }
+                }
+            });
         }
         function generateReport() {
             const startDateStr = document.getElementById('reportStartDate').value;
@@ -1958,6 +2042,13 @@
 
             pdfMake.createPdf(docDefinition).open();
         }
+
+        // ป้องกันไม่ให้การเลื่อนเมาส์ (scroll) เปลี่ยนค่าตัวเลขในช่อง input type="number"
+        document.addEventListener('wheel', function(event) {
+            if (document.activeElement.type === 'number') {
+                document.activeElement.blur();
+            }
+        });
     </script>
 </body>
 
