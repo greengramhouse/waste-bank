@@ -437,11 +437,16 @@
                         <h2 class="text-xl font-bold text-vintage-800 flex items-center gap-2 vintage-title">
                             <i class="fa-solid fa-user-graduate text-gold-500"></i> สรุปข้อมูลบุคคล
                         </h2>
-                        <select id="summaryStudentSelect"
-                            class="w-full sm:w-72 px-4 py-2 rounded-lg border border-vintage-200 focus:border-vintage-500 outline-none text-sm bg-white"
-                            onchange="renderStudentSummary()">
-                            <option value="">-- เลือกนักเรียน --</option>
-                        </select>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                            <select id="summaryStudentSelect"
+                                class="w-full sm:w-72 px-4 py-2 rounded-lg border border-vintage-200 focus:border-vintage-500 outline-none text-sm bg-white"
+                                onchange="renderStudentSummary()">
+                                <option value="">-- เลือกนักเรียน --</option>
+                            </select>
+                            <button onclick="refreshTransactions()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition shadow-sm text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-8">
@@ -479,7 +484,7 @@
                             <div class="text-xl sm:text-2xl font-bold text-white relative z-10"><span
                                     id="ind-current-points">0</span> <i
                                     class="fa-solid fa-star text-sm text-yellow-300"></i></div>
-                            <div class="text-[9px] text-gold-200 mt-1 relative z-10">สร้างเกาะ: <span
+                            <div class="text-[9px] text-gold-200 mt-1 relative z-10">ใช้ไปแล้ว: <span
                                     id="ind-spent-points">0</span> แต้ม</div>
                         </div>
                     </div>
@@ -520,11 +525,21 @@
                             <i class="fa-solid fa-chart-line text-gold-500"></i> ภาพรวมห้องเรียน
                         </h2>
                         <!-- กล่องเลือกห้อง (จะแสดงเฉพาะตอนเข้าด้วย Admin) -->
-                        <select id="summaryRoomSelect"
-                            class="w-full sm:w-72 px-4 py-2 rounded-lg border border-vintage-200 focus:border-vintage-500 outline-none text-sm bg-white hidden"
-                            onchange="renderRoomSummary()">
-                            <option value="all">-- รวมทุกห้อง --</option>
-                        </select>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto hidden" id="summaryRoomSelectContainer">
+                            <select id="summaryRoomSelect"
+                                class="w-full sm:w-72 px-4 py-2 rounded-lg border border-vintage-200 focus:border-vintage-500 outline-none text-sm bg-white"
+                                onchange="renderRoomSummary()">
+                                <option value="all">-- รวมทุกห้อง --</option>
+                            </select>
+                            <button onclick="refreshTransactions()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition shadow-sm text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+                            </button>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto" id="summaryRoomRefreshBtnOnly">
+                            <button onclick="refreshTransactions()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition shadow-sm text-sm whitespace-nowrap">
+                                <i class="fa-solid fa-rotate-right"></i> รีเฟรชข้อมูล
+                            </button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -1137,16 +1152,27 @@
 
         async function loadTransactions() {
             try {
-                // FIX: แจ้ง Backend ว่าถ้าเป็น admin ให้ดึงประวัติของ 'admin' (คือทั้งหมด)
+                // แจ้ง Backend ว่าถ้าเป็น admin ให้ดึงประวัติของ 'admin' (คือทั้งหมด)
                 const reqRoom = currentRole === 'admin' ? 'admin' : currentUser.room;
-                let res = await callBackend('getTransactions', { room: reqRoom });
-                if (res.status === 'success') {
-                    transactions = res.data;
-                    renderStudentList();
-                    if (document.getElementById('view-history').classList.contains('hidden') === false) renderHistory();
-                    if (document.getElementById('view-summary-student').classList.contains('hidden') === false) renderStudentSummary();
-                    if (document.getElementById('view-summary-room').classList.contains('hidden') === false) renderRoomSummary();
+                
+                // Fetch transactions and students concurrently
+                const p1 = callBackend('getTransactions', { room: reqRoom });
+                const p2 = callBackend('getStudents', { room: reqRoom });
+                
+                const [res1, res2] = await Promise.all([p1, p2]);
+                
+                if (res1.status === 'success') {
+                    transactions = res1.data;
                 }
+                if (res2.status === 'success') {
+                    students = res2.students;
+                }
+                
+                renderStudentList();
+                if (document.getElementById('view-history').classList.contains('hidden') === false) renderHistory();
+                if (document.getElementById('view-summary-student').classList.contains('hidden') === false) renderStudentSummary();
+                if (document.getElementById('view-summary-room').classList.contains('hidden') === false) renderRoomSummary();
+                
             } catch (err) { console.error('Load transactions failed', err); }
         }
 
@@ -1313,30 +1339,51 @@
                 });
             }
 
-            // คำนวณแต้มที่ใช้สร้างเกาะไปแล้ว
+            // คำนวณแต้มที่ใช้สร้างเกาะและซื้อตัวละคร
             const selectedStudentData = students.find(s => s.id.toString() === studentId);
             let spentPoints = 0;
             const ITEM_COSTS = { 'flower': 10, 'bush': 15, 'tree': 30, 'birdhouse': 40, 'solar': 80, 'windmill': 100, 'fountain': 150, 'expand': 150, 'mysterybox': 50, 'goldentree': 50, 'crystal': 50, 'castle': 50, 'snowman': 50 };
+            const RG_CHAR_COSTS = [0, 50, 80, 150];
 
-            if (selectedStudentData && selectedStudentData.gameState) {
-                try {
-                    const grid = JSON.parse(selectedStudentData.gameState);
-                    if (Array.isArray(grid) && grid.length > 0) {
-                        const cols = grid.length;
-                        const rows = grid[0].length;
-                        // นับค่าของใน grid
-                        for (let x = 0; x < cols; x++) {
-                            for (let y = 0; y < rows; y++) {
-                                if (grid[x][y] && ITEM_COSTS[grid[x][y]]) {
-                                    spentPoints += ITEM_COSTS[grid[x][y]];
+            if (selectedStudentData) {
+                // 1. หักแต้มจากเกม Eco Valley (สร้างเกาะ)
+                if (selectedStudentData.gameState) {
+                    try {
+                        const grid = JSON.parse(selectedStudentData.gameState);
+                        if (Array.isArray(grid) && grid.length > 0) {
+                            const cols = grid.length;
+                            const rows = grid[0].length;
+                            // นับค่าของใน grid
+                            for (let x = 0; x < cols; x++) {
+                                for (let y = 0; y < rows; y++) {
+                                    if (grid[x][y] && ITEM_COSTS[grid[x][y]]) {
+                                        spentPoints += ITEM_COSTS[grid[x][y]];
+                                    }
                                 }
                             }
+                            // นับค่าซื้อที่ดิน (ขยายเกิน 5 คอลัมน์)
+                            const extraCols = Math.max(0, cols - 5);
+                            spentPoints += (extraCols * ITEM_COSTS['expand']);
                         }
-                        // นับค่าซื้อที่ดิน (ขยายเกิน 5 คอลัมน์)
-                        const extraCols = Math.max(0, cols - 5);
-                        spentPoints += (extraCols * ITEM_COSTS['expand']);
-                    }
-                } catch (e) { }
+                    } catch (e) { }
+                }
+
+                // 2. หักแต้มจากเกม RecycleHero (ซื้อตัวละคร)
+                if (selectedStudentData.recycleState) {
+                    try {
+                        const rState = JSON.parse(selectedStudentData.recycleState);
+                        console.log('--- RecycleHero Data for', selectedStudentData.id, '---');
+                        console.log('rState:', rState);
+                        if (rState.unlockedChars && Array.isArray(rState.unlockedChars)) {
+                            rState.unlockedChars.forEach(ch => {
+                                if (RG_CHAR_COSTS[ch]) {
+                                    console.log(' - Added cost for char', ch, ':', RG_CHAR_COSTS[ch]);
+                                    spentPoints += RG_CHAR_COSTS[ch];
+                                }
+                            });
+                        }
+                    } catch (e) {}
+                }
             }
 
             const currentPoints = totalP - spentPoints;
@@ -1401,10 +1448,14 @@
         }
 
         function initRoomSummary() {
+            const container = document.getElementById('summaryRoomSelectContainer');
+            const refreshBtnOnly = document.getElementById('summaryRoomRefreshBtnOnly');
             const select = document.getElementById('summaryRoomSelect');
+            
             // ถ้าเป็น Admin ให้เปิดการมองเห็น Dropdown และใส่ข้อมูลห้อง
             if (currentRole === 'admin') {
-                select.classList.remove('hidden');
+                container.classList.remove('hidden');
+                refreshBtnOnly.classList.add('hidden');
                 if (select.options.length <= 1 && students.length > 0) {
                     // ดึงรายชื่อห้องทั้งหมดที่ไม่ซ้ำกันจากรายชื่อนักเรียน
                     const uniqueRooms = [...new Set(students.map(s => s.room))].filter(Boolean).sort();
@@ -1416,7 +1467,8 @@
                     });
                 }
             } else {
-                select.classList.add('hidden');
+                container.classList.add('hidden');
+                refreshBtnOnly.classList.remove('hidden');
             }
             renderRoomSummary();
         }
